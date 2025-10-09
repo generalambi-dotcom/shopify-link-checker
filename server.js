@@ -46,7 +46,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       '/api/config': 'POST - Update configuration',
-      '/api/scan': 'POST - Start product scan',
+      '/api/scan': 'GET - Start product scan (SSE)',
+      '/api/scan-simple': 'POST - Start product scan (simple)',
       '/api/scan-collection': 'POST - Scan specific collection',
       '/api/test-link': 'POST - Test single link',
       '/api/products': 'GET - List products with affiliate links'
@@ -518,37 +519,6 @@ app.get('/api/scan', async (req, res) => {
   }
 });
 
-// API Endpoint: Scan specific collection
-app.post('/api/scan-collection', async (req, res) => {
-  try {
-    const { collectionId } = req.body;
-    
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    res.write(`data: ${JSON.stringify({ type: 'start', message: 'Starting collection scan...' })}\n\n`);
-
-    const products = await fetchProducts(collectionId);
-    
-    res.write(`data: ${JSON.stringify({ 
-      type: 'info', 
-      message: `Found ${products.length} products in collection` 
-    })}\n\n`);
-
-    res.end();
-
-  } catch (error) {
-    res.write(`data: ${JSON.stringify({ 
-      type: 'error', 
-      error: error.message 
-    })}\n\n`);
-    res.end();
-  }
-});
-
 // Alternative simple POST endpoint without streaming (for CORS compatibility)
 app.post('/api/scan-simple', async (req, res) => {
   try {
@@ -560,14 +530,14 @@ app.post('/api/scan-simple', async (req, res) => {
     const maxProducts = req.body.maxProducts || CONFIG.MAX_PRODUCTS_PER_SCAN;
     if (maxProducts && maxProducts > 0) {
       products = products.slice(0, maxProducts);
-      console.log(`Limited scan to ${maxProducts} products (out of ${products.length} total)`);
+      console.log(`Limited scan to ${maxProducts} products`);
     }
     
     const results = [];
     const issues = [];
     const scanLog = []; // Collect logs to send back
 
-    scanLog.push({ time: new Date().toISOString(), message: `Starting scan of ${products.length} products`, type: 'info' });
+    scanLog.push({ time: new Date().toISOString(), message: `🚀 Starting scan of ${products.length} products`, type: 'info' });
 
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
@@ -575,7 +545,7 @@ app.post('/api/scan-simple', async (req, res) => {
       // Log each product being checked
       scanLog.push({ 
         time: new Date().toISOString(), 
-        message: `[${i + 1}/${products.length}] Checking: ${product.title}`, 
+        message: `[${i + 1}/${products.length}] 🔍 Checking: ${product.title}`, 
         type: 'progress' 
       });
       
@@ -610,7 +580,7 @@ app.post('/api/scan-simple', async (req, res) => {
       } else {
         scanLog.push({ 
           time: new Date().toISOString(), 
-          message: `✓ OK: ${product.title}`, 
+          message: `✅ OK: ${product.title}`, 
           type: 'success' 
         });
       }
@@ -637,7 +607,7 @@ app.post('/api/scan-simple', async (req, res) => {
       if ((i + 1) % CONFIG.BATCH_SIZE === 0 && i + 1 < products.length) {
         scanLog.push({ 
           time: new Date().toISOString(), 
-          message: `⏸️ Batch complete. Waiting ${CONFIG.BATCH_DELAY}ms before next batch...`, 
+          message: `⏸️ Batch ${Math.ceil((i + 1) / CONFIG.BATCH_SIZE)} complete. Waiting ${CONFIG.BATCH_DELAY}ms before next batch...`, 
           type: 'info' 
         });
         await new Promise(resolve => setTimeout(resolve, CONFIG.BATCH_DELAY));
@@ -649,7 +619,7 @@ app.post('/api/scan-simple', async (req, res) => {
 
     scanLog.push({ 
       time: new Date().toISOString(), 
-      message: `✅ Scan complete! ${products.length} products checked, ${issues.length} issues found`, 
+      message: `✅ Scan complete! ${products.length} products checked, ${issues.length} issues found in ${Math.floor(duration / 60)}m ${duration % 60}s`, 
       type: 'success' 
     });
 
@@ -659,7 +629,7 @@ app.post('/api/scan-simple', async (req, res) => {
         totalProducts: products.length,
         issuesFound: issues.length,
         duration: `${Math.floor(duration / 60)}m ${duration % 60}s`,
-        storeHealth: Math.round(((products.length - issues.length) / products.length) * 100)
+        storeHealth: products.length > 0 ? Math.round(((products.length - issues.length) / products.length) * 100) : 0
       },
       results,
       issues,
@@ -667,10 +637,42 @@ app.post('/api/scan-simple', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Scan error:', error);
     res.status(500).json({ 
       success: false,
       error: error.message 
     });
+  }
+});
+
+// API Endpoint: Scan specific collection
+app.post('/api/scan-collection', async (req, res) => {
+  try {
+    const { collectionId } = req.body;
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    res.write(`data: ${JSON.stringify({ type: 'start', message: 'Starting collection scan...' })}\n\n`);
+
+    const products = await fetchProducts(collectionId);
+    
+    res.write(`data: ${JSON.stringify({ 
+      type: 'info', 
+      message: `Found ${products.length} products in collection` 
+    })}\n\n`);
+
+    res.end();
+
+  } catch (error) {
+    res.write(`data: ${JSON.stringify({ 
+      type: 'error', 
+      error: error.message 
+    })}\n\n`);
+    res.end();
   }
 });
 
