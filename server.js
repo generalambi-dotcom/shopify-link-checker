@@ -8,7 +8,15 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// Enhanced CORS configuration for Server-Sent Events
+app.use(cors({
+  origin: '*', // Allow all origins for development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
+  credentials: false
+}));
+
 app.use(express.json());
 
 // Configuration from environment variables or request body
@@ -377,12 +385,15 @@ app.post('/api/test-link', async (req, res) => {
 });
 
 // API Endpoint: Start full scan with streaming progress
-app.post('/api/scan', async (req, res) => {
+app.get('/api/scan', async (req, res) => {
   try {
-    // Set headers for Server-Sent Events
+    // Set headers for Server-Sent Events with proper CORS
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering on Nginx
 
     const startTime = Date.now();
     
@@ -512,21 +523,19 @@ app.post('/api/scan-collection', async (req, res) => {
     const { collectionId } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     res.write(`data: ${JSON.stringify({ type: 'start', message: 'Starting collection scan...' })}\n\n`);
 
     const products = await fetchProducts(collectionId);
     
-    // Similar processing as full scan...
     res.write(`data: ${JSON.stringify({ 
       type: 'info', 
       message: `Found ${products.length} products in collection` 
     })}\n\n`);
-
-    // Process products (same logic as /api/scan)
-    // ... rest of scanning logic
 
     res.end();
 
@@ -536,6 +545,78 @@ app.post('/api/scan-collection', async (req, res) => {
       error: error.message 
     })}\n\n`);
     res.end();
+  }
+});
+
+// Alternative simple POST endpoint without streaming (for CORS compatibility)
+app.post('/api/scan-simple', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    const products = await fetchProducts();
+    const results = [];
+    const issues = [];
+
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const linkStatus = await checkLink(product.affiliateLink);
+      
+      const result = {
+        ...product,
+        ...linkStatus,
+        action: determineAction(linkStatus),
+        lastChecked: new Date().toISOString()
+      };
+
+      results.push(result);
+
+      if (linkStatus.issue) {
+        issues.push({
+          id: product.id,
+          product: product.title,
+          collection: 'Unknown',
+          issue: linkStatus.issue,
+          severity: linkStatus.severity,
+          url: product.affiliateLink,
+          action: result.action,
+          lastChecked: 'Just now'
+        });
+      }
+
+      // Auto-actions
+      if (CONFIG.AUTO_DRAFT && linkStatus.status === 'low_stock') {
+        await updateProductStatus(product.id, 'draft');
+      }
+      if (CONFIG.AUTO_ARCHIVE && (linkStatus.status === 'broken' || linkStatus.status === 'out_of_stock' || linkStatus.status === 'timeout')) {
+        await updateProductStatus(product.id, 'archived');
+      }
+
+      // Batch delay
+      if ((i + 1) % CONFIG.BATCH_SIZE === 0 && i + 1 < products.length) {
+        await new Promise(resolve => setTimeout(resolve, CONFIG.BATCH_DELAY));
+      }
+    }
+
+    const endTime = Date.now();
+    const duration = Math.round((endTime - startTime) / 1000);
+
+    res.json({
+      success: true,
+      summary: {
+        totalProducts: products.length,
+        issuesFound: issues.length,
+        duration: `${Math.floor(duration / 60)}m ${duration % 60}s`,
+        storeHealth: Math.round(((products.length - issues.length) / products.length) * 100)
+      },
+      results,
+      issues
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
