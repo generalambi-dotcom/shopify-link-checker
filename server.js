@@ -34,7 +34,8 @@ let CONFIG = {
   },
   MIN_STOCK_THRESHOLD: parseInt(process.env.MIN_STOCK_THRESHOLD) || 2,
   AUTO_DRAFT: process.env.AUTO_DRAFT === 'true',
-  AUTO_ARCHIVE: process.env.AUTO_ARCHIVE === 'true'
+  AUTO_ARCHIVE: process.env.AUTO_ARCHIVE === 'true',
+  MAX_PRODUCTS_PER_SCAN: parseInt(process.env.MAX_PRODUCTS_PER_SCAN) || 0 // 0 = unlimited
 };
 
 // Health check endpoint
@@ -553,12 +554,31 @@ app.post('/api/scan-simple', async (req, res) => {
   try {
     const startTime = Date.now();
     
-    const products = await fetchProducts();
+    let products = await fetchProducts();
+    
+    // Limit products if configured
+    const maxProducts = req.body.maxProducts || CONFIG.MAX_PRODUCTS_PER_SCAN;
+    if (maxProducts && maxProducts > 0) {
+      products = products.slice(0, maxProducts);
+      console.log(`Limited scan to ${maxProducts} products (out of ${products.length} total)`);
+    }
+    
     const results = [];
     const issues = [];
+    const scanLog = []; // Collect logs to send back
+
+    scanLog.push({ time: new Date().toISOString(), message: `Starting scan of ${products.length} products`, type: 'info' });
 
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
+      
+      // Log each product being checked
+      scanLog.push({ 
+        time: new Date().toISOString(), 
+        message: `[${i + 1}/${products.length}] Checking: ${product.title}`, 
+        type: 'progress' 
+      });
+      
       const linkStatus = await checkLink(product.affiliateLink);
       
       const result = {
@@ -571,6 +591,12 @@ app.post('/api/scan-simple', async (req, res) => {
       results.push(result);
 
       if (linkStatus.issue) {
+        scanLog.push({ 
+          time: new Date().toISOString(), 
+          message: `⚠️ Issue found: ${product.title} - ${linkStatus.issue}`, 
+          type: 'warning' 
+        });
+        
         issues.push({
           id: product.id,
           product: product.title,
@@ -581,24 +607,51 @@ app.post('/api/scan-simple', async (req, res) => {
           action: result.action,
           lastChecked: 'Just now'
         });
+      } else {
+        scanLog.push({ 
+          time: new Date().toISOString(), 
+          message: `✓ OK: ${product.title}`, 
+          type: 'success' 
+        });
       }
 
       // Auto-actions
       if (CONFIG.AUTO_DRAFT && linkStatus.status === 'low_stock') {
         await updateProductStatus(product.id, 'draft');
+        scanLog.push({ 
+          time: new Date().toISOString(), 
+          message: `📝 Drafted: ${product.title}`, 
+          type: 'action' 
+        });
       }
       if (CONFIG.AUTO_ARCHIVE && (linkStatus.status === 'broken' || linkStatus.status === 'out_of_stock' || linkStatus.status === 'timeout')) {
         await updateProductStatus(product.id, 'archived');
+        scanLog.push({ 
+          time: new Date().toISOString(), 
+          message: `📦 Archived: ${product.title}`, 
+          type: 'action' 
+        });
       }
 
       // Batch delay
       if ((i + 1) % CONFIG.BATCH_SIZE === 0 && i + 1 < products.length) {
+        scanLog.push({ 
+          time: new Date().toISOString(), 
+          message: `⏸️ Batch complete. Waiting ${CONFIG.BATCH_DELAY}ms before next batch...`, 
+          type: 'info' 
+        });
         await new Promise(resolve => setTimeout(resolve, CONFIG.BATCH_DELAY));
       }
     }
 
     const endTime = Date.now();
     const duration = Math.round((endTime - startTime) / 1000);
+
+    scanLog.push({ 
+      time: new Date().toISOString(), 
+      message: `✅ Scan complete! ${products.length} products checked, ${issues.length} issues found`, 
+      type: 'success' 
+    });
 
     res.json({
       success: true,
@@ -609,7 +662,8 @@ app.post('/api/scan-simple', async (req, res) => {
         storeHealth: Math.round(((products.length - issues.length) / products.length) * 100)
       },
       results,
-      issues
+      issues,
+      scanLog // Send logs back to frontend
     });
 
   } catch (error) {
@@ -621,8 +675,13 @@ app.post('/api/scan-simple', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Shopify Link Checker API running on http://localhost:${PORT}`);
   console.log(`📊 Dashboard: Configure at /api/config endpoint`);
   console.log(`🔍 Ready to scan products!`);
 });
+
+// Increase timeout for large scans (30 minutes)
+server.timeout = 1800000; // 30 minutes in milliseconds
+server.keepAliveTimeout = 1800000;
+server.headersTimeout = 1900000;
