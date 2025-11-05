@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Link Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .results-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.broken {
+            background: #fee;
+            color: #c00;
+        }
+
+        .status-badge.ok {
+            background: #efe;
+            color: #0a0;
+        }
+
+        .action-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .action-badge.drafted {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .action-badge.would_draft {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .download-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-secondary {
+            background: #6c757d;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .results-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Shopify Link Checker</h1>
+            <p>Validate product metafield URLs and automatically draft products with broken links</p>
+        </div>
+
+        <div class="content">
+            <div class="alert alert-info">
+                <strong>Required API Scopes:</strong> Products (read/write) and Metafields (read)
+            </div>
+
+            <form id="checkForm" class="form-section">
+                <h2 style="margin-bottom: 20px;">Configuration</h2>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="shop">Shop Domain*</label>
+                        <input type="text" id="shop" name="shop" placeholder="my-shop.myshopify.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="token">Admin API Token*</label>
+                        <input type="password" id="token" name="token" placeholder="shpat_..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="namespace">Metafield Namespace*</label>
+                        <input type="text" id="namespace" name="namespace" placeholder="custom" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="key">Metafield Key*</label>
+                        <input type="text" id="key" name="key" placeholder="video_url" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Product Status</label>
+                        <select id="status" name="status">
+                            <option value="active" selected>Active</option>
+                            <option value="draft">Draft</option>
+                            <option value="archived">Archived</option>
+                            <option value="any">Any</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="collection_ids">Collection IDs (comma-separated)</label>
+                        <input type="text" id="collection_ids" name="collection_ids" placeholder="123456,789012">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batch_size">Batch Size (max 250)</label>
+                        <input type="number" id="batch_size" name="batch_size" min="1" max="250" value="250">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="concurrency">Concurrency</label>
+                        <input type="number" id="concurrency" name="concurrency" min="1" max="100" value="20">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeout_ms">Timeout (ms)</label>
+                        <input type="number" id="timeout_ms" name="timeout_ms" min="1000" max="60000" value="8000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="api_version">API Version</label>
+                        <input type="text" id="api_version" name="api_version" value="2024-10">
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="follow_redirects" name="follow_redirects" checked>
+                        <label for="follow_redirects">Follow Redirects</label>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="dry_run" name="dry_run">
+                        <label for="dry_run">Dry Run (don't draft products)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="resume_token">Resume Token (optional)</label>
+                    <textarea id="resume_token" name="resume_token" rows="3" placeholder="Paste resume token here to continue an interrupted job"></textarea>
+                </div>
+
+                <div class="alert alert-warning">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="confirm" required>
+                        <label for="confirm"><strong>I understand that products with broken links will be set to draft status (unless dry-run is enabled)</strong></label>
+                    </div>
+                </div>
+
+                <button type="submit" class="button" id="runButton">Run Link Check</button>
+            </form>
+
+            <div id="progressSection" class="progress-section">
+                <h2 style="margin-bottom: 20px;">Progress</h2>
+
+                <div class="progress-bar">
+                    <div id="progressBarFill" class="progress-bar-fill" style="width: 0%">0%</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">Status</div>
+                        <div class="value" id="statStatus">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Batch</div>
+                        <div class="value" id="statBatch">0/0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Scanned</div>
+                        <div class="value" id="statScanned">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Drafted</div>
+                        <div class="value" id="statDrafted">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Broken URLs</div>
+                        <div class="value" id="statBroken">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Errors</div>
+                        <div class="value" id="statErrors">0</div>
+                    </div>
+                </div>
+
+                <div class="results-container">
+                    <table class="results-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Title</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="download-buttons">
+                    <button class="button" id="downloadCsv" disabled>Download CSV</button>
+                    <button class="button button-secondary" id="downloadJsonl" disabled>Download JSONL</button>
+                </div>
+
+                <div id="resumeTokenSection" style="margin-top: 20px; display: none;">
+                    <div class="form-group">
+                        <label for="resumeTokenOutput">Resume Token</label>
+                        <textarea id="resumeTokenOutput" rows="3" readonly style="background: #f8f9fa;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let eventSource = null;
+
+        document.getElementById('checkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = {
+                shop: formData.get('shop'),
+                token: formData.get('token'),
+                namespace: formData.get('namespace'),
+                key: formData.get('key'),
+                status: formData.get('status'),
+                collection_ids: formData.get('collection_ids')
+                    ? formData.get('collection_ids').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                    : null,
+                batch_size: parseInt(formData.get('batch_size')),
+                concurrency: parseInt(formData.get('concurrency')),
+                timeout_ms: parseInt(formData.get('timeout_ms')),
+                follow_redirects: formData.get('follow_redirects') === 'on',
+                dry_run: formData.get('dry_run') === 'on',
+                resume_token: formData.get('resume_token') || null,
+                api_version: formData.get('api_version'),
+            };
+
+            try {
+                // Create job
+                const response = await fetch('/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to start job: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                currentJobId = result.job_id;
+
+                // Show progress section
+                document.getElementById('progressSection').classList.add('active');
+                document.getElementById('runButton').disabled = true;
+
+                // Clear previous results
+                document.getElementById('resultsTableBody').innerHTML = '';
+
+                // Start streaming progress
+                startStreaming(currentJobId);
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+
+        function startStreaming(jobId) {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`/jobs/${jobId}/stream`);
+
+            eventSource.onmessage = (event) => {
+                const update = JSON.parse(event.data);
+
+                // Update stats
+                if (update.stats) {
+                    const stats = update.stats;
+                    document.getElementById('statStatus').textContent = update.status || 'Running';
+                    document.getElementById('statBatch').textContent = `${stats.batch_index}/${stats.total_batches}`;
+                    document.getElementById('statScanned').textContent = stats.processed;
+                    document.getElementById('statDrafted').textContent = stats.drafted_count;
+                    document.getElementById('statBroken').textContent = stats.broken_url_count;
+                    document.getElementById('statErrors').textContent = stats.errors_count;
+
+                    // Update progress bar
+                    const progress = stats.total_products > 0
+                        ? Math.round((stats.processed / stats.total_products) * 100)
+                        : 0;
+                    document.getElementById('progressBarFill').style.width = `${progress}%`;
+                    document.getElementById('progressBarFill').textContent = `${progress}%`;
+                }
+
+                // Add new results
+                if (update.results && update.results.length > 0) {
+                    const tbody = document.getElementById('resultsTableBody');
+                    update.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${result.product_id}</td>
+                            <td>${result.product_title}</td>
+                            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${result.url}">${result.url}</td>
+                            <td><span class="status-badge ${result.is_broken ? 'broken' : 'ok'}">${result.is_broken ? 'Broken' : 'OK'}</span></td>
+                            <td><span class="action-badge ${result.action}">${result.action}</span></td>
+                            <td>${new Date(result.checked_at).toLocaleTimeString()}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // Check if completed
+                if (update.status === 'completed' || update.status === 'failed') {
+                    eventSource.close();
+                    document.getElementById('runButton').disabled = false;
+                    document.getElementById('downloadCsv').disabled = false;
+                    document.getElementById('downloadJsonl').disabled = false;
+
+                    // Show resume token if available
+                    if (update.resume_token) {
+                        document.getElementById('resumeTokenSection').style.display = 'block';
+                        document.getElementById('resumeTokenOutput').value = update.resume_token;
+                    }
+                }
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('EventSource error:', error);
+                eventSource.close();
+                document.getElementById('runButton').disabled = false;
+            };
+        }
+
+        document.getElementById('downloadCsv').addEventListener('click', () => {
+            if (currentJobId) {
+                window.location.href = `/jobs/${currentJobId}/csv`;
+            }
+        });
+
+        document.getElementById('downloadJsonl').addEventListener('click', () => {
+            if (currentJobId) {
+                window.location.href = `/jobs/${currentJobId}/jsonl`;
+            }
+        });
+    </script>
+</body>
+</html>

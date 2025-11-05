@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  shopify-link-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopify-link-checker
+    ports:
+      - "8000:8000"
+    environment:
+      # Optional: Set Shopify token via environment variable
+      # SHOPIFY_TOKEN: ${SHOPIFY_TOKEN}
+      LOG_LEVEL: INFO
+    volumes:
+      # Mount for development (optional, comment out in production)
+      - ./src:/app/src
+      - ./templates:/app/templates
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - shopify-network
+
+networks:
+  shopify-network:
+    driver: bridge
