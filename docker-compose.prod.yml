@@ -1,24 +1,48 @@
 version: '3.8'
 
 services:
+  # Traefik reverse proxy with automatic SSL
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # Redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - web
+
+  # Shopify Link Checker Application
   shopify-link-checker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: shopify-link-checker
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
-      # Override with your values
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       PYTHONUNBUFFERED: 1
+      PORT: 8000
     env_file:
-      - .env  # Create this file with your SHOPIFY_TOKEN
+      - .env
     volumes:
-      # Persist output files
       - ./output:/app/output
-      # Persist logs
       - ./logs:/app/logs
     deploy:
       resources:
@@ -34,27 +58,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.linkchecker.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.linkchecker.entrypoints=websecure"
+      - "traefik.http.routers.linkchecker.tls.certresolver=letsencrypt"
+      # Service
+      - "traefik.http.services.linkchecker.loadbalancer.server.port=8000"
+      # Headers for SSE
+      - "traefik.http.middlewares.sse-headers.headers.customresponseheaders.Cache-Control=no-cache"
+      - "traefik.http.middlewares.sse-headers.headers.customresponseheaders.X-Accel-Buffering=no"
+      - "traefik.http.routers.linkchecker.middlewares=sse-headers"
     networks:
-      - shopify-network
-
-  # Optional: Add Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - shopify-link-checker
-    networks:
-      - shopify-network
+      - web
 
 networks:
-  shopify-network:
+  web:
     driver: bridge
 
 volumes:
+  letsencrypt:
   output:
   logs:

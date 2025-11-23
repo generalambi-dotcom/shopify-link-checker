@@ -1,0 +1,19 @@
+# Render Blueprint
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: shopify-link-checker
+    env: docker
+    dockerfilePath: ./Dockerfile.prod
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PYTHONUNBUFFERED
+        value: 1
+    autoDeploy: true
+    plan: starter # or standard for production
