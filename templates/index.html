@@ -3,105 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopify Link Checker</title>
+    <title>Shopify Affiliate Link Checker</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .form-section {
-            margin-bottom: 30px;
-        }
-
+        .header h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        .header p { font-size: 1rem; opacity: 0.9; }
+        .content { padding: 30px; }
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
-
         .form-group {
             display: flex;
             flex-direction: column;
         }
-
         .form-group label {
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #333;
+            font-size: 13px;
         }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
+        .form-group input, .form-group select, .form-group textarea {
             padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
         }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
         }
-
-        .form-group input[type="checkbox"] {
-            width: auto;
-            margin-right: 8px;
-        }
-
         .checkbox-group {
             display: flex;
             align-items: center;
+            gap: 8px;
         }
-
-        .checkbox-group label {
-            margin: 0;
-            font-weight: normal;
-        }
-
+        .checkbox-group input { width: auto; }
+        .checkbox-group label { margin: 0; font-weight: normal; }
         .button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -113,57 +74,32 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .progress-section {
-            display: none;
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .progress-section.active {
-            display: block;
-        }
-
+        .button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .button-secondary { background: #6c757d; }
+        .button-danger { background: #dc3545; }
+        .button-warning { background: #ffc107; color: #333; }
+        .button-sm { padding: 6px 12px; font-size: 12px; }
+        .progress-section { display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .progress-section.active { display: block; }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
             margin-bottom: 20px;
         }
-
         .stat-card {
             background: white;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            text-align: center;
         }
-
-        .stat-card .label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
-        .stat-card .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-        }
-
+        .stat-card .label { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+        .stat-card .value { font-size: 22px; font-weight: 700; color: #333; }
+        .stat-card .value.ok { color: #28a745; }
+        .stat-card .value.warning { color: #ffc107; }
+        .stat-card .value.danger { color: #dc3545; }
         .progress-bar {
             width: 100%;
             height: 30px;
@@ -172,7 +108,6 @@
             overflow: hidden;
             margin-bottom: 20px;
         }
-
         .progress-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
@@ -184,401 +119,429 @@
             font-weight: 600;
             font-size: 14px;
         }
-
+        .mode-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .mode-indicator.dry-run { background: #d1ecf1; color: #0c5460; }
+        .mode-indicator.live { background: #f8d7da; color: #721c24; }
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .results-container { max-height: 600px; overflow-y: auto; }
         .results-table {
             width: 100%;
-            margin-top: 20px;
             border-collapse: collapse;
             background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 13px;
         }
-
-        .results-table th,
-        .results-table td {
-            padding: 12px;
+        .results-table th, .results-table td {
+            padding: 10px 8px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
         }
-
-        .results-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .results-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .status-badge {
+        .results-table th { background: #f8f9fa; font-weight: 600; color: #333; position: sticky; top: 0; }
+        .results-table tr:hover { background: #f8f9fa; }
+        .results-table tr.broken { background: #fff5f5; }
+        .product-image { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: 600;
         }
-
-        .status-badge.broken {
-            background: #fee;
-            color: #c00;
-        }
-
-        .status-badge.ok {
-            background: #efe;
-            color: #0a0;
-        }
-
-        .action-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .action-badge.drafted {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .action-badge.would_draft {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .download-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .button-secondary {
-            background: #6c757d;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .results-container {
-            max-height: 500px;
-            overflow-y: auto;
-        }
+        .badge-ok { background: #d4edda; color: #155724; }
+        .badge-redirected { background: #fff3cd; color: #856404; }
+        .badge-broken { background: #f8d7da; color: #721c24; }
+        .badge-404 { background: #f8d7da; color: #721c24; }
+        .badge-5xx { background: #f5c6cb; color: #721c24; }
+        .badge-timeout { background: #e2e3e5; color: #383d41; }
+        .badge-dns { background: #d6d8db; color: #1b1e21; }
+        .badge-ssl { background: #ffeeba; color: #856404; }
+        .badge-action { background: #cce5ff; color: #004085; }
+        .badge-drafted { background: #fff3cd; color: #856404; }
+        .badge-archived { background: #d6d8db; color: #1b1e21; }
+        .action-buttons { display: flex; gap: 4px; }
+        .url-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .download-buttons { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        .collapsible { cursor: pointer; user-select: none; }
+        .collapsible::before { content: '▼ '; font-size: 10px; }
+        .collapsible.collapsed::before { content: '▶ '; }
+        .advanced-options { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .advanced-options.hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Shopify Link Checker</h1>
-            <p>Validate product metafield URLs and automatically draft products with broken links</p>
+            <h1>Shopify Affiliate Link Checker</h1>
+            <p>Validate product metafield URLs and manage products with broken links</p>
         </div>
-
         <div class="content">
             <div class="alert alert-info">
-                <strong>Required API Scopes:</strong> Products (read/write) and Metafields (read)
+                <strong>Required API Scopes:</strong> read_products, write_products, read_metafields
             </div>
-
-            <form id="checkForm" class="form-section">
-                <h2 style="margin-bottom: 20px;">Configuration</h2>
-
+            <form id="checkForm">
+                <div class="section-title">Configuration</div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="shop">Shop Domain*</label>
-                        <input type="text" id="shop" name="shop" placeholder="my-shop.myshopify.com" required>
+                        <label>Shop Domain *</label>
+                        <input type="text" id="shop" placeholder="my-shop.myshopify.com" required>
                     </div>
-
                     <div class="form-group">
-                        <label for="token">Admin API Token*</label>
-                        <input type="password" id="token" name="token" placeholder="shpat_..." required>
+                        <label>Admin API Token *</label>
+                        <input type="password" id="token" placeholder="shpat_..." required>
                     </div>
-
                     <div class="form-group">
-                        <label for="namespace">Metafield Namespace*</label>
-                        <input type="text" id="namespace" name="namespace" placeholder="custom" required>
+                        <label>Metafield Namespace *</label>
+                        <input type="text" id="namespace" placeholder="affiliate" value="affiliate" required>
                     </div>
-
                     <div class="form-group">
-                        <label for="key">Metafield Key*</label>
-                        <input type="text" id="key" name="key" placeholder="video_url" required>
+                        <label>Metafield Key *</label>
+                        <input type="text" id="key" placeholder="link" value="link" required>
                     </div>
-
                     <div class="form-group">
-                        <label for="status">Product Status</label>
-                        <select id="status" name="status">
-                            <option value="active" selected>Active</option>
-                            <option value="draft">Draft</option>
-                            <option value="archived">Archived</option>
-                            <option value="any">Any</option>
+                        <label>Product Status</label>
+                        <select id="status">
+                            <option value="active" selected>Active Only</option>
+                            <option value="draft">Draft Only</option>
+                            <option value="archived">Archived Only</option>
+                            <option value="any">All Products</option>
                         </select>
                     </div>
-
                     <div class="form-group">
-                        <label for="collection_ids">Collection IDs (comma-separated)</label>
-                        <input type="text" id="collection_ids" name="collection_ids" placeholder="123456,789012">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="batch_size">Batch Size (max 250)</label>
-                        <input type="number" id="batch_size" name="batch_size" min="1" max="250" value="250">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="concurrency">Concurrency</label>
-                        <input type="number" id="concurrency" name="concurrency" min="1" max="100" value="20">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="timeout_ms">Timeout (ms)</label>
-                        <input type="number" id="timeout_ms" name="timeout_ms" min="1000" max="60000" value="8000">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="api_version">API Version</label>
-                        <input type="text" id="api_version" name="api_version" value="2024-10">
-                    </div>
-
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="follow_redirects" name="follow_redirects" checked>
-                        <label for="follow_redirects">Follow Redirects</label>
-                    </div>
-
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="dry_run" name="dry_run">
-                        <label for="dry_run">Dry Run (don't draft products)</label>
+                        <label>Action for Broken Links</label>
+                        <select id="broken_action">
+                            <option value="draft" selected>Set to Draft</option>
+                            <option value="archive">Archive Product</option>
+                            <option value="ignore">Do Nothing</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="resume_token">Resume Token (optional)</label>
-                    <textarea id="resume_token" name="resume_token" rows="3" placeholder="Paste resume token here to continue an interrupted job"></textarea>
+                <div class="form-grid">
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="dry_run" checked>
+                        <label for="dry_run"><strong>Dry Run</strong> (report only, no changes)</label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="auto_action">
+                        <label for="auto_action">Auto-apply action to broken links</label>
+                    </div>
                 </div>
-
-                <div class="alert alert-warning">
+                <div class="collapsible" onclick="toggleAdvanced()">Advanced Options</div>
+                <div id="advancedOptions" class="advanced-options hidden">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Collection IDs (comma-separated)</label>
+                            <input type="text" id="collection_ids" placeholder="123456,789012">
+                        </div>
+                        <div class="form-group">
+                            <label>Updated After (ISO date)</label>
+                            <input type="text" id="updated_after" placeholder="2024-01-01T00:00:00Z">
+                        </div>
+                        <div class="form-group">
+                            <label>Batch Size (max 250)</label>
+                            <input type="number" id="batch_size" value="250" min="1" max="250">
+                        </div>
+                        <div class="form-group">
+                            <label>Concurrency</label>
+                            <input type="number" id="concurrency" value="20" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Timeout (ms)</label>
+                            <input type="number" id="timeout_ms" value="8000" min="1000" max="60000">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Redirects</label>
+                            <input type="number" id="max_redirects" value="5" min="1" max="20">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="follow_redirects" checked>
+                            <label for="follow_redirects">Follow Redirects</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:15px">
+                        <label>Resume Token (optional)</label>
+                        <textarea id="resume_token" rows="2" placeholder="Paste resume token to continue"></textarea>
+                    </div>
+                </div>
+                <div class="alert alert-warning" style="margin-top:20px">
                     <div class="checkbox-group">
                         <input type="checkbox" id="confirm" required>
-                        <label for="confirm"><strong>I understand that products with broken links will be set to draft status (unless dry-run is enabled)</strong></label>
+                        <label for="confirm"><strong>I understand that products may be modified based on my settings above</strong></label>
                     </div>
                 </div>
-
-                <button type="submit" class="button" id="runButton">Run Link Check</button>
+                <button type="submit" class="button" id="runButton">Start Scan</button>
             </form>
-
             <div id="progressSection" class="progress-section">
-                <h2 style="margin-bottom: 20px;">Progress</h2>
-
+                <div id="modeIndicator" class="mode-indicator dry-run">DRY RUN MODE</div>
+                <div class="section-title">Progress</div>
                 <div class="progress-bar">
-                    <div id="progressBarFill" class="progress-bar-fill" style="width: 0%">0%</div>
+                    <div id="progressBarFill" class="progress-bar-fill" style="width:0%">0%</div>
                 </div>
-
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="label">Status</div>
-                        <div class="value" id="statStatus">Pending</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Batch</div>
-                        <div class="value" id="statBatch">0/0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Scanned</div>
-                        <div class="value" id="statScanned">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Drafted</div>
-                        <div class="value" id="statDrafted">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Broken URLs</div>
-                        <div class="value" id="statBroken">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label">Errors</div>
-                        <div class="value" id="statErrors">0</div>
-                    </div>
+                    <div class="stat-card"><div class="label">Status</div><div class="value" id="statStatus">Pending</div></div>
+                    <div class="stat-card"><div class="label">Batch</div><div class="value" id="statBatch">0/0</div></div>
+                    <div class="stat-card"><div class="label">Scanned</div><div class="value" id="statScanned">0</div></div>
+                    <div class="stat-card"><div class="label">OK</div><div class="value ok" id="statOk">0</div></div>
+                    <div class="stat-card"><div class="label">Redirected</div><div class="value warning" id="statRedirected">0</div></div>
+                    <div class="stat-card"><div class="label">Broken</div><div class="value danger" id="statBroken">0</div></div>
+                    <div class="stat-card"><div class="label">No URL</div><div class="value" id="statNoUrl">0</div></div>
+                    <div class="stat-card"><div class="label">Drafted</div><div class="value" id="statDrafted">0</div></div>
+                    <div class="stat-card"><div class="label">Archived</div><div class="value" id="statArchived">0</div></div>
+                    <div class="stat-card"><div class="label">Errors</div><div class="value danger" id="statErrors">0</div></div>
                 </div>
-
+                <div class="filter-bar">
+                    <label>Filter:</label>
+                    <select id="filterStatus" onchange="filterResults()">
+                        <option value="all">All Results</option>
+                        <option value="broken">Broken Only</option>
+                        <option value="ok">OK Only</option>
+                        <option value="redirected">Redirected Only</option>
+                    </select>
+                    <input type="text" id="filterSearch" placeholder="Search product..." onkeyup="filterResults()">
+                </div>
                 <div class="results-container">
-                    <table class="results-table" id="resultsTable">
+                    <table class="results-table">
                         <thead>
                             <tr>
-                                <th>Product ID</th>
-                                <th>Title</th>
-                                <th>URL</th>
+                                <th>Image</th>
+                                <th>Product</th>
+                                <th>Original URL</th>
+                                <th>Final URL</th>
                                 <th>Status</th>
                                 <th>Action</th>
-                                <th>Time</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="resultsTableBody">
-                        </tbody>
+                        <tbody id="resultsTableBody"></tbody>
                     </table>
                 </div>
-
                 <div class="download-buttons">
-                    <button class="button" id="downloadCsv" disabled>Download CSV</button>
+                    <button class="button" id="downloadCsv" disabled>Download CSV (All)</button>
+                    <button class="button button-secondary" id="downloadCsvBroken" disabled>Download CSV (Broken)</button>
                     <button class="button button-secondary" id="downloadJsonl" disabled>Download JSONL</button>
                 </div>
-
-                <div id="resumeTokenSection" style="margin-top: 20px; display: none;">
+                <div id="resumeTokenSection" style="margin-top:20px;display:none">
                     <div class="form-group">
-                        <label for="resumeTokenOutput">Resume Token</label>
-                        <textarea id="resumeTokenOutput" rows="3" readonly style="background: #f8f9fa;"></textarea>
+                        <label>Resume Token</label>
+                        <textarea id="resumeTokenOutput" rows="2" readonly style="background:#f8f9fa"></textarea>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
     <script>
         let currentJobId = null;
         let eventSource = null;
+        let allResults = [];
+        let isDryRun = true;
+
+        function toggleAdvanced() {
+            const el = document.getElementById('advancedOptions');
+            const toggle = document.querySelector('.collapsible');
+            el.classList.toggle('hidden');
+            toggle.classList.toggle('collapsed');
+        }
+
+        function getLinkStatusBadge(status, httpStatus) {
+            const badges = {
+                'ok': 'badge-ok', 'redirected_ok': 'badge-redirected',
+                'broken_not_found': 'badge-404', 'broken_server_error': 'badge-5xx',
+                'broken_client_error': 'badge-broken', 'broken_timeout': 'badge-timeout',
+                'broken_dns': 'badge-dns', 'broken_ssl': 'badge-ssl',
+                'broken_too_many_redirects': 'badge-broken', 'broken_other': 'badge-broken',
+                'no_url': 'badge-action'
+            };
+            const labels = {
+                'ok': 'OK', 'redirected_ok': 'Redirected',
+                'broken_not_found': '404', 'broken_server_error': '5xx Error',
+                'broken_client_error': '4xx Error', 'broken_timeout': 'Timeout',
+                'broken_dns': 'DNS Error', 'broken_ssl': 'SSL Error',
+                'broken_too_many_redirects': 'Too Many Redirects', 'broken_other': 'Error',
+                'no_url': 'No URL'
+            };
+            const label = (httpStatus ? `${httpStatus} ` : '') + (labels[status] || status);
+            return `<span class="badge ${badges[status] || 'badge-broken'}">${label}</span>`;
+        }
+
+        function getActionBadge(action) {
+            const badges = {
+                'no_action': '', 'drafted': 'badge-drafted', 'archived': 'badge-archived',
+                'ignored': 'badge-action', 'already_draft': 'badge-action',
+                'already_archived': 'badge-action', 'would_draft': 'badge-action',
+                'would_archive': 'badge-action', 'error': 'badge-broken', 'no_urls': ''
+            };
+            if (!badges[action] && action !== 'no_action' && action !== 'no_urls') return '';
+            const label = action.replace(/_/g, ' ');
+            return badges[action] ? `<span class="badge ${badges[action]}">${label}</span>` : '';
+        }
+
+        function filterResults() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
+            const tbody = document.getElementById('resultsTableBody');
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const isBroken = row.classList.contains('broken');
+                const isOk = row.dataset.status === 'ok';
+                const isRedirected = row.dataset.status === 'redirected_ok';
+                const text = row.textContent.toLowerCase();
+                let show = true;
+                if (statusFilter === 'broken' && !isBroken) show = false;
+                if (statusFilter === 'ok' && !isOk) show = false;
+                if (statusFilter === 'redirected' && !isRedirected) show = false;
+                if (searchFilter && !text.includes(searchFilter)) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        async function performAction(productId, action) {
+            if (isDryRun) { alert('Cannot perform actions in dry-run mode'); return; }
+            try {
+                const response = await fetch(`/jobs/${currentJobId}/products/${productId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: productId, action: action })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Product ${productId} ${result.action}`);
+                    const rows = document.querySelectorAll(`tr[data-product-id="${productId}"]`);
+                    rows.forEach(row => {
+                        const actionCell = row.querySelector('.action-cell');
+                        if (actionCell) actionCell.innerHTML = getActionBadge(result.action);
+                    });
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (e) { alert(`Error: ${e.message}`); }
+        }
 
         document.getElementById('checkForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const formData = new FormData(e.target);
+            isDryRun = document.getElementById('dry_run').checked;
+            const collectionIds = document.getElementById('collection_ids').value;
             const data = {
-                shop: formData.get('shop'),
-                token: formData.get('token'),
-                namespace: formData.get('namespace'),
-                key: formData.get('key'),
-                status: formData.get('status'),
-                collection_ids: formData.get('collection_ids')
-                    ? formData.get('collection_ids').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
-                    : null,
-                batch_size: parseInt(formData.get('batch_size')),
-                concurrency: parseInt(formData.get('concurrency')),
-                timeout_ms: parseInt(formData.get('timeout_ms')),
-                follow_redirects: formData.get('follow_redirects') === 'on',
-                dry_run: formData.get('dry_run') === 'on',
-                resume_token: formData.get('resume_token') || null,
-                api_version: formData.get('api_version'),
+                shop: document.getElementById('shop').value,
+                token: document.getElementById('token').value,
+                namespace: document.getElementById('namespace').value,
+                key: document.getElementById('key').value,
+                status: document.getElementById('status').value,
+                collection_ids: collectionIds ? collectionIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : null,
+                batch_size: parseInt(document.getElementById('batch_size').value),
+                concurrency: parseInt(document.getElementById('concurrency').value),
+                timeout_ms: parseInt(document.getElementById('timeout_ms').value),
+                max_redirects: parseInt(document.getElementById('max_redirects').value),
+                follow_redirects: document.getElementById('follow_redirects').checked,
+                dry_run: isDryRun,
+                resume_token: document.getElementById('resume_token').value || null,
+                updated_after: document.getElementById('updated_after').value || null,
+                broken_action: document.getElementById('broken_action').value,
+                auto_action: document.getElementById('auto_action').checked,
             };
-
             try {
-                // Create job
                 const response = await fetch('/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to start job: ${response.statusText}`);
-                }
-
+                if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
                 const result = await response.json();
                 currentJobId = result.job_id;
-
-                // Show progress section
+                allResults = [];
                 document.getElementById('progressSection').classList.add('active');
                 document.getElementById('runButton').disabled = true;
-
-                // Clear previous results
                 document.getElementById('resultsTableBody').innerHTML = '';
-
-                // Start streaming progress
+                const modeIndicator = document.getElementById('modeIndicator');
+                modeIndicator.textContent = isDryRun ? 'DRY RUN MODE' : 'LIVE MODE';
+                modeIndicator.className = 'mode-indicator ' + (isDryRun ? 'dry-run' : 'live');
                 startStreaming(currentJobId);
-
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         });
 
         function startStreaming(jobId) {
-            if (eventSource) {
-                eventSource.close();
-            }
-
+            if (eventSource) eventSource.close();
             eventSource = new EventSource(`/jobs/${jobId}/stream`);
-
             eventSource.onmessage = (event) => {
                 const update = JSON.parse(event.data);
-
-                // Update stats
                 if (update.stats) {
-                    const stats = update.stats;
+                    const s = update.stats;
                     document.getElementById('statStatus').textContent = update.status || 'Running';
-                    document.getElementById('statBatch').textContent = `${stats.batch_index}/${stats.total_batches}`;
-                    document.getElementById('statScanned').textContent = stats.processed;
-                    document.getElementById('statDrafted').textContent = stats.drafted_count;
-                    document.getElementById('statBroken').textContent = stats.broken_url_count;
-                    document.getElementById('statErrors').textContent = stats.errors_count;
-
-                    // Update progress bar
-                    const progress = stats.total_products > 0
-                        ? Math.round((stats.processed / stats.total_products) * 100)
-                        : 0;
+                    document.getElementById('statBatch').textContent = `${s.batch_index}/${s.total_batches}`;
+                    document.getElementById('statScanned').textContent = s.processed;
+                    document.getElementById('statOk').textContent = s.ok_url_count || 0;
+                    document.getElementById('statRedirected').textContent = s.redirected_ok_count || 0;
+                    document.getElementById('statBroken').textContent = s.broken_url_count;
+                    document.getElementById('statNoUrl').textContent = s.no_url_count || 0;
+                    document.getElementById('statDrafted').textContent = s.drafted_count;
+                    document.getElementById('statArchived').textContent = s.archived_count || 0;
+                    document.getElementById('statErrors').textContent = s.errors_count;
+                    const progress = s.total_products > 0 ? Math.round((s.processed / s.total_products) * 100) : 0;
                     document.getElementById('progressBarFill').style.width = `${progress}%`;
                     document.getElementById('progressBarFill').textContent = `${progress}%`;
                 }
-
-                // Add new results
                 if (update.results && update.results.length > 0) {
                     const tbody = document.getElementById('resultsTableBody');
-                    update.results.forEach(result => {
+                    update.results.forEach(r => {
+                        allResults.push(r);
                         const row = document.createElement('tr');
+                        row.dataset.productId = r.product_id;
+                        row.dataset.status = r.link_status;
+                        if (r.is_broken) row.classList.add('broken');
+                        const imgSrc = r.product_image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"%3E%3Crect fill="%23ddd" width="40" height="40"/%3E%3C/svg%3E';
                         row.innerHTML = `
-                            <td>${result.product_id}</td>
-                            <td>${result.product_title}</td>
-                            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${result.url}">${result.url}</td>
-                            <td><span class="status-badge ${result.is_broken ? 'broken' : 'ok'}">${result.is_broken ? 'Broken' : 'OK'}</span></td>
-                            <td><span class="action-badge ${result.action}">${result.action}</span></td>
-                            <td>${new Date(result.checked_at).toLocaleTimeString()}</td>
-                        `;
+                            <td><img src="${imgSrc}" class="product-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect fill=%22%23ddd%22 width=%2240%22 height=%2240%22/%3E%3C/svg%3E'"></td>
+                            <td><strong>${r.product_title}</strong><br><small>#${r.product_id}</small></td>
+                            <td class="url-cell" title="${r.original_url || ''}">${r.original_url || '-'}</td>
+                            <td class="url-cell" title="${r.final_url || ''}">${r.final_url || '-'}</td>
+                            <td>${getLinkStatusBadge(r.link_status, r.http_status)}</td>
+                            <td class="action-cell">${getActionBadge(r.action)}</td>
+                            <td class="action-buttons">
+                                ${r.is_broken && !isDryRun ? `
+                                    <button class="button button-warning button-sm" onclick="performAction(${r.product_id}, 'draft')">Draft</button>
+                                    <button class="button button-danger button-sm" onclick="performAction(${r.product_id}, 'archive')">Archive</button>
+                                    <button class="button button-secondary button-sm" onclick="performAction(${r.product_id}, 'ignore')">Ignore</button>
+                                ` : ''}
+                            </td>`;
                         tbody.appendChild(row);
                     });
                 }
-
-                // Check if completed
                 if (update.status === 'completed' || update.status === 'failed') {
                     eventSource.close();
                     document.getElementById('runButton').disabled = false;
                     document.getElementById('downloadCsv').disabled = false;
+                    document.getElementById('downloadCsvBroken').disabled = false;
                     document.getElementById('downloadJsonl').disabled = false;
-
-                    // Show resume token if available
                     if (update.resume_token) {
                         document.getElementById('resumeTokenSection').style.display = 'block';
                         document.getElementById('resumeTokenOutput').value = update.resume_token;
                     }
                 }
             };
-
-            eventSource.onerror = (error) => {
-                console.error('EventSource error:', error);
-                eventSource.close();
-                document.getElementById('runButton').disabled = false;
-            };
+            eventSource.onerror = () => { eventSource.close(); document.getElementById('runButton').disabled = false; };
         }
 
-        document.getElementById('downloadCsv').addEventListener('click', () => {
-            if (currentJobId) {
-                window.location.href = `/jobs/${currentJobId}/csv`;
-            }
-        });
-
-        document.getElementById('downloadJsonl').addEventListener('click', () => {
-            if (currentJobId) {
-                window.location.href = `/jobs/${currentJobId}/jsonl`;
-            }
-        });
+        document.getElementById('downloadCsv').addEventListener('click', () => { if (currentJobId) window.location.href = `/jobs/${currentJobId}/csv`; });
+        document.getElementById('downloadCsvBroken').addEventListener('click', () => { if (currentJobId) window.location.href = `/jobs/${currentJobId}/csv?broken_only=true`; });
+        document.getElementById('downloadJsonl').addEventListener('click', () => { if (currentJobId) window.location.href = `/jobs/${currentJobId}/jsonl`; });
     </script>
 </body>
 </html>

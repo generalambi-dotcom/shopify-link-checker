@@ -18,15 +18,43 @@ class ProductStatus(str, Enum):
     ANY = "any"
 
 
+class LinkStatus(str, Enum):
+    """Classification of link check result."""
+
+    OK = "ok"  # 2xx response
+    REDIRECTED_OK = "redirected_ok"  # 3xx ending in 2xx
+    BROKEN_NOT_FOUND = "broken_not_found"  # 404
+    BROKEN_SERVER_ERROR = "broken_server_error"  # 5xx
+    BROKEN_CLIENT_ERROR = "broken_client_error"  # 4xx (non-404)
+    BROKEN_TIMEOUT = "broken_timeout"
+    BROKEN_DNS = "broken_dns"
+    BROKEN_SSL = "broken_ssl"
+    BROKEN_TOO_MANY_REDIRECTS = "broken_too_many_redirects"
+    BROKEN_OTHER = "broken_other"
+    NO_URL = "no_url"
+
+
 class ActionType(str, Enum):
     """Action taken on a product."""
 
     NO_ACTION = "no_action"
     DRAFTED = "drafted"
+    ARCHIVED = "archived"
+    IGNORED = "ignored"
     ALREADY_DRAFT = "already_draft"
+    ALREADY_ARCHIVED = "already_archived"
     WOULD_DRAFT = "would_draft"  # dry-run
+    WOULD_ARCHIVE = "would_archive"  # dry-run
     ERROR = "error"
     NO_URLS = "no_urls"
+
+
+class ProductAction(str, Enum):
+    """Requested action for a product."""
+
+    DRAFT = "draft"
+    ARCHIVE = "archive"
+    IGNORE = "ignore"
 
 
 class CheckResult(BaseModel):
@@ -35,27 +63,64 @@ class CheckResult(BaseModel):
     product_id: int
     product_title: str
     product_status: str
+    product_handle: Optional[str] = None
+    product_image: Optional[str] = None
     metafield: str
-    url: str
+    original_url: str
+    final_url: Optional[str] = None
     http_status: Optional[int] = None
+    link_status: LinkStatus
     is_broken: bool
+    was_redirected: bool = False
+    redirect_count: int = 0
     error: Optional[str] = None
     action: ActionType
     checked_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Legacy compatibility
+    @property
+    def url(self) -> str:
+        return self.original_url
 
     def to_csv_row(self) -> list[str]:
         """Convert to CSV row."""
         return [
             str(self.product_id),
             self.product_title,
+            self.product_handle or "",
             self.product_status,
             self.metafield,
-            self.url,
+            self.original_url,
+            self.final_url or "",
             str(self.http_status) if self.http_status else "",
+            self.link_status.value,
             str(self.is_broken),
+            str(self.was_redirected),
+            str(self.redirect_count),
             self.error or "",
             self.action.value,
             self.checked_at.isoformat(),
+        ]
+
+    @staticmethod
+    def csv_headers() -> list[str]:
+        """Get CSV header row."""
+        return [
+            "product_id",
+            "product_title",
+            "product_handle",
+            "product_status",
+            "metafield",
+            "original_url",
+            "final_url",
+            "http_status",
+            "link_status",
+            "is_broken",
+            "was_redirected",
+            "redirect_count",
+            "error",
+            "action",
+            "checked_at",
         ]
 
     def to_jsonl(self) -> str:
@@ -88,6 +153,7 @@ class Checkpoint(BaseModel):
         namespace: str,
         key: str,
         collection_ids: Optional[list[int]],
+        updated_after: Optional[datetime] = None,
     ) -> str:
         """Compute hash of job scope for resume validation."""
         scope_data = {
@@ -96,6 +162,7 @@ class Checkpoint(BaseModel):
             "namespace": namespace,
             "key": key,
             "collection_ids": sorted(collection_ids) if collection_ids else None,
+            "updated_after": updated_after.isoformat() if updated_after else None,
         }
         scope_str = json.dumps(scope_data, sort_keys=True)
         return hashlib.sha256(scope_str.encode()).hexdigest()
@@ -114,14 +181,23 @@ class JobConfig(BaseModel):
     concurrency: int = Field(default=20, ge=1, le=100)
     timeout_ms: int = Field(default=8000, ge=1000, le=60000)
     follow_redirects: bool = True
+    max_redirects: int = Field(default=5, ge=1, le=20)
     dry_run: bool = False
     resume_token: Optional[str] = None
     api_version: str = "2024-10"
+    updated_after: Optional[datetime] = None  # Filter by update date
+    broken_action: ProductAction = ProductAction.DRAFT  # Default action for broken links
+    auto_action: bool = False  # Auto-apply action to broken links
 
     def get_scope_hash(self) -> str:
         """Get scope hash for this config."""
         return Checkpoint.compute_scope_hash(
-            self.shop, self.status, self.namespace, self.key, self.collection_ids
+            self.shop,
+            self.status,
+            self.namespace,
+            self.key,
+            self.collection_ids,
+            self.updated_after,
         )
 
 
@@ -141,7 +217,12 @@ class JobStats(BaseModel):
     total_products: int = 0
     processed: int = 0
     drafted_count: int = 0
+    archived_count: int = 0
+    ignored_count: int = 0
     broken_url_count: int = 0
+    ok_url_count: int = 0
+    redirected_ok_count: int = 0
+    no_url_count: int = 0
     errors_count: int = 0
     batch_index: int = 0
     total_batches: int = 0
@@ -176,3 +257,26 @@ class Job(BaseModel):
 
         checkpoint_json = base64.b64decode(token.encode()).decode()
         return Checkpoint.model_validate_json(checkpoint_json)
+
+    def get_filtered_results(
+        self,
+        broken_only: bool = False,
+        status_filter: Optional[list[LinkStatus]] = None,
+    ) -> list[CheckResult]:
+        """Get filtered results."""
+        results = self.results
+
+        if broken_only:
+            results = [r for r in results if r.is_broken]
+
+        if status_filter:
+            results = [r for r in results if r.link_status in status_filter]
+
+        return results
+
+
+class ProductUpdateRequest(BaseModel):
+    """Request to update a product's status."""
+
+    product_id: int
+    action: ProductAction
