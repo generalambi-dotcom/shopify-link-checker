@@ -1,7 +1,7 @@
 {
   "name": "shopify-link-checker-api",
   "version": "1.0.0",
-  "description": "Backend API for Shopify affiliate link checking and monitoring",
+  "description": "Shopify affiliate link checker with dashboard and remediation controls",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,11 +16,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bottleneck": "^2.19.5",
+    "cors": "^2.8.5",
+    "csv-stringify": "^6.5.2",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "node-fetch": "^2.7.0",
-    "cheerio": "^1.0.0-rc.12",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "p-limit": "^4.0.0"
   },
   "engines": {
     "node": ">=14.0.0"
