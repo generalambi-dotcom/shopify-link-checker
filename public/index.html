@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Affiliate Link Checker</title>
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #0d0f12;
+      background: #f5f7fb;
+    }
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      background: #f5f7fb;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 1rem;
+    }
+    h1 { margin-top: 0; }
+    label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+    input, select, button { font-size: 1rem; }
+    input, select {
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid #d0d7e2;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background: #111827;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+    }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      background: #e5e7eb;
+    }
+    .badge.ok { background: #dcfce7; color: #166534; }
+    .badge.warn { background: #fef3c7; color: #92400e; }
+    .badge.error { background: #fee2e2; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; }
+    .actions button { margin-right: 0.5rem; }
+    .status-live { color: #16a34a; font-weight: 700; }
+    .status-dry { color: #c2410c; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Shopify Affiliate Link Checker</h1>
+    <p id="mode-indicator" class="status-dry">Dry Run</p>
+    <div class="grid">
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="dry">Dry Run (no changes)</option>
+          <option value="live">Live (changes allowed)</option>
+        </select>
+      </div>
+      <div>
+        <label for="scope">Products</label>
+        <select id="scope">
+          <option value="all">All products</option>
+          <option value="active">Active only</option>
+          <option value="draft">Draft only</option>
+          <option value="archived">Archived only</option>
+        </select>
+      </div>
+      <div>
+        <label for="updatedAfter">Updated after (optional)</label>
+        <input id="updatedAfter" type="date" />
+      </div>
+      <div style="align-self: end;">
+        <button id="startScan">Start Scan</button>
+      </div>
+    </div>
+    <p id="progress">Waiting to start…</p>
+  </div>
+
+  <div class="card">
+    <div class="grid" style="align-items: end;">
+      <div>
+        <label for="filter">Filter</label>
+        <select id="filter">
+          <option value="all">All</option>
+          <option value="broken">Broken only</option>
+          <option value="redirect">Redirected</option>
+          <option value="ok">OK</option>
+          <option value="nolink">No link</option>
+        </select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="export" disabled>Export CSV</button>
+      </div>
+    </div>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Affiliate URL</th>
+          <th>Final URL</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+  const startScanBtn = document.getElementById('startScan');
+  const modeSelect = document.getElementById('mode');
+  const scopeSelect = document.getElementById('scope');
+  const updatedAfterInput = document.getElementById('updatedAfter');
+  const progress = document.getElementById('progress');
+  const tableBody = document.querySelector('#resultsTable tbody');
+  const filterSelect = document.getElementById('filter');
+  const exportBtn = document.getElementById('export');
+  const modeIndicator = document.getElementById('mode-indicator');
+
+  let currentJobId = null;
+  let results = [];
+  let pollTimer = null;
+
+  function renderMode() {
+    const mode = modeSelect.value;
+    if (mode === 'live') {
+      modeIndicator.textContent = 'Live Mode';
+      modeIndicator.className = 'status-live';
+    } else {
+      modeIndicator.textContent = 'Dry Run';
+      modeIndicator.className = 'status-dry';
+    }
+  }
+
+  modeSelect.addEventListener('change', renderMode);
+  renderMode();
+
+  function badgeFor(status) {
+    if (!status) return '<span class="badge">Unknown</span>';
+    if (status.startsWith('OK')) return `<span class="badge ok">${status}</span>`;
+    if (status.includes('Redirect')) return `<span class="badge warn">${status}</span>`;
+    if (status === 'No link found') return `<span class="badge">${status}</span>`;
+    return `<span class="badge error">${status}</span>`;
+  }
+
+  function applyFilter() {
+    const filter = filterSelect.value;
+    const filtered = results.filter(r => {
+      if (filter === 'broken') return r.classification && r.classification.startsWith('Broken');
+      if (filter === 'redirect') return r.classification && r.classification.includes('Redirect');
+      if (filter === 'ok') return r.classification && r.classification.startsWith('OK');
+      if (filter === 'nolink') return r.classification === 'No link found';
+      return true;
+    });
+    renderTable(filtered);
+  }
+
+  filterSelect.addEventListener('change', applyFilter);
+
+  function renderTable(rows) {
+    tableBody.innerHTML = '';
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      const imgCell = row.image ? `<img src="${row.image}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '';
+      tr.innerHTML = `
+        <td>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            ${imgCell}
+            <div>
+              <div><strong>${row.title}</strong></div>
+              <div style="color:#6b7280;">ID: ${row.productId}</div>
+              <div style="color:#6b7280;">${row.status}</div>
+            </div>
+          </div>
+        </td>
+        <td style="max-width:220px; word-break:break-all;">${row.affiliateUrl || '—'}</td>
+        <td style="max-width:220px; word-break:break-all;">${row.finalUrl || '—'}</td>
+        <td>${badgeFor(row.classification)}<div style="color:#6b7280;font-size:0.85rem;">${row.httpStatus || ''} ${row.error || ''}</div></td>
+        <td class="actions"></td>
+      `;
+      const actionsCell = tr.querySelector('.actions');
+      const broken = row.classification && row.classification.startsWith('Broken');
+      const dryRun = modeSelect.value === 'dry';
+      if (broken) {
+        const draftBtn = document.createElement('button');
+        draftBtn.textContent = 'Move to draft';
+        draftBtn.disabled = dryRun;
+        draftBtn.onclick = () => updateStatus(row.productId, 'DRAFT');
+
+        const archiveBtn = document.createElement('button');
+        archiveBtn.textContent = 'Archive';
+        archiveBtn.disabled = dryRun;
+        archiveBtn.onclick = () => updateStatus(row.productId, 'ARCHIVED');
+
+        actionsCell.appendChild(draftBtn);
+        actionsCell.appendChild(archiveBtn);
+      } else {
+        actionsCell.textContent = '—';
+      }
+      tableBody.appendChild(tr);
+    });
+  }
+
+  async function updateStatus(productId, status) {
+    try {
+      const res = await fetch(`/api/products/${productId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, dryRun: modeSelect.value === 'dry' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+      alert(data.message || 'Status updated');
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function startScan() {
+    startScanBtn.disabled = true;
+    progress.textContent = 'Starting scan…';
+
+    const payload = {
+      dryRun: modeSelect.value === 'dry',
+      scope: scopeSelect.value,
+      updatedAfter: updatedAfterInput.value || null
+    };
+
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    currentJobId = data.jobId;
+    pollProgress();
+  }
+
+  async function pollProgress() {
+    if (!currentJobId) return;
+    try {
+      const res = await fetch(`/api/scan/${currentJobId}`);
+      const job = await res.json();
+      if (!res.ok) throw new Error(job.error || 'Failed to fetch job');
+
+      progress.textContent = `Status: ${job.status}. Progress ${job.progress}`;
+
+      if (job.status === 'completed' || job.status === 'error') {
+        results = job.results || [];
+        applyFilter();
+        exportBtn.disabled = job.status !== 'completed';
+        startScanBtn.disabled = false;
+        clearTimeout(pollTimer);
+      } else {
+        pollTimer = setTimeout(pollProgress, 2000);
+      }
+    } catch (err) {
+      progress.textContent = err.message;
+      startScanBtn.disabled = false;
+    }
+  }
+
+  startScanBtn.addEventListener('click', startScan);
+
+  exportBtn.addEventListener('click', () => {
+    if (!currentJobId) return;
+    window.location = `/api/scan/${currentJobId}/export`;
+  });
+</script>
+</body>
+</html>
